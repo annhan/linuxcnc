@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPalette, QColor
 class HandlerClass:
 
     def __init__(self, halcomp,widgets,paths):
-        self.hal = halcomp
+        self.h = halcomp
         self.w = widgets
         self.w.setWindowFlags(QtCore.Qt.CustomizeWindowHint | \
                               QtCore.Qt.WindowTitleHint | \
@@ -18,6 +18,8 @@ class HandlerClass:
 
     def initialized__(self):
         self.w.setWindowTitle('QtPlasmaC Sim')
+        self.arcVoltsPin = self.h.newpin('arc_voltage_out-f', hal.HAL_FLOAT, hal.HAL_OUT)
+        self.w.arc_voltage_out.valueChanged.connect(self.arc_voltage_changed)
         self.w.torch_on.hal_pin_changed.connect(self.torch_changed)
         self.w.sensor_flt.pressed.connect(self.float_pressed)
         self.w.sensor_ohm.pressed.connect(self.ohmic_pressed)
@@ -193,19 +195,29 @@ class HandlerClass:
         if halpin:
             time.sleep(0.1)
             if hal.get_value('plasmac.mode') == 0 or hal.get_value('plasmac.mode') == 1:
-                self.w.arc_voltage_out.setValue(100.0)
-                self.w.arc_voltage_out.setMinimum(90.0)
-                self.w.arc_voltage_out.setMaximum(110.0)
+                self.w.arc_voltage_out.setValue(1000)
+                self.w.arc_voltage_out.setMinimum(900)
+                self.w.arc_voltage_out.setMaximum(1100)
+                self.w.arc_voltage_out.setSingleStep(1)
+                self.w.arc_voltage_out.setPageStep(10)
             if (hal.get_value('plasmac.mode') == 1 or hal.get_value('plasmac.mode') == 2) and not self.w.arc_ok.isChecked():
                 self.w.arc_ok.toggle()
                 self.w.arc_ok_clicked()
         else:
-            self.w.arc_voltage_out.setMinimum(0.0)
-            self.w.arc_voltage_out.setMaximum(300.0)
-            self.w.arc_voltage_out.setValue(0.0)
+            self.w.arc_voltage_out.setMinimum(0)
+            self.w.arc_voltage_out.setMaximum(3000)
+            self.w.arc_voltage_out.setValue(0)
+            self.w.arc_voltage_out.setSingleStep(10)
+            self.w.arc_voltage_out.setPageStep(100)
             if self.w.arc_ok.isChecked():
                 self.w.arc_ok.toggle()
                 self.w.arc_ok_clicked()
+
+    def arc_voltage_changed(self):
+        if self.w.arc_voltage_out.maximum() == 3000:
+            self.arcVoltsPin.set(int(self.w.arc_voltage_out.value() * 0.1))
+        else:
+            self.arcVoltsPin.set(self.w.arc_voltage_out.value() * 0.1)
 
 def get_handlers(halcomp,widgets,paths):
      return [HandlerClass(halcomp,widgets,paths)]
